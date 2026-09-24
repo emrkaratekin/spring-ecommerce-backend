@@ -14,12 +14,18 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update
+      # Flyway creates and changes the schema (src/main/resources/db/migration).
+      # Hibernate only verifies at startup that the entities match the tables.
+      ddl-auto: validate
     open-in-view: false
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
 
   data:
     web:
@@ -30,6 +36,15 @@ server:
   port: 8080
   error:
     include-stacktrace: never
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    persist-authorization: true
 
 security:
   jwt:

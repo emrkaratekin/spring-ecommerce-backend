@@ -1,0 +1,10 @@
+# Test profile: the database comes from Testcontainers (a throw-away PostgreSQL in Docker),
+# Stripe is replaced by a mock, so no real secrets are needed.
+stripe:
+  secret-key: sk_test_dummy_for_tests
+  webhook-secret: whsec_dummy_for_tests
+
+app:
+  order:
+    # keep the scheduler out of the way during tests
+    expiration-check-interval: PT1H
