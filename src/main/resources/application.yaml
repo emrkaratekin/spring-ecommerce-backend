@@ -2,6 +2,11 @@ spring:
   application:
     name: ecommerce-api
 
+  # "local" loads ./config/application-local.yaml (git-ignored secrets) during development.
+  # In production set SPRING_PROFILES_ACTIVE (e.g. "prod") and provide secrets as environment variables.
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/ecommerce_db}
     username: ${DB_USERNAME:ecommerce_user}
@@ -32,9 +37,20 @@ security:
     secret: ${JWT_SECRET:rUbX/rZnExfbiQSCzPCn5MXmtJ2TE+GrCLmMUFdyqsBCzYsKRsPOajOUL3coeLF4guZ7cl8juJtWq/Vsyh+RmQ==}
     expiration: ${JWT_EXPIRATION:1h}
 
+stripe:
+  # Never hard-code these. Locally they come from config/application-local.yaml,
+  # in production from the STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET environment variables.
+  secret-key: ${STRIPE_SECRET_KEY:}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  currency: pln
+
 app:
   admin:
     email: ${ADMIN_EMAIL:admin@ecommerce.local}
     password: ${ADMIN_PASSWORD:Admin12345}
     first-name: System
     last-name: Admin
+  order:
+    # Unpaid (PENDING) orders older than this are cancelled automatically and their stock is released.
+    payment-timeout: 30m
+    expiration-check-interval: PT1M

@@ -15,6 +15,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -44,6 +45,28 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleBusiness(BusinessException ex,
                                                         HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(InvalidWebhookSignatureException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidWebhookSignature(InvalidWebhookSignatureException ex,
+                                                                       HttpServletRequest request) {
+        log.warn("Rejected webhook on {}: {}", request.getRequestURI(), ex.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(PaymentProviderException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentProvider(PaymentProviderException ex,
+                                                               HttpServletRequest request) {
+        log.error("Payment provider error on {} {}", request.getMethod(), request.getRequestURI(), ex);
+        return buildResponse(HttpStatus.BAD_GATEWAY,
+                "The payment provider is currently unavailable. Please try again later.", request, null);
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ErrorResponse> handleMissingHeader(MissingRequestHeaderException ex,
+                                                             HttpServletRequest request) {
+        String message = String.format("Required header '%s' is missing", ex.getHeaderName());
+        return buildResponse(HttpStatus.BAD_REQUEST, message, request, null);
     }
 
     @ExceptionHandler(BadCredentialsException.class)

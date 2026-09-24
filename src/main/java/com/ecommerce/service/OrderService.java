@@ -27,4 +27,12 @@ public interface OrderService {
     OrderResponse getOrder(String orderNumber);
 
     OrderResponse updateOrderStatus(String orderNumber, UpdateOrderStatusRequest request);
+
+    // System operations
+
+    /**
+     * Cancels an unpaid order whose payment window has passed and releases its stock.
+     * Does nothing if the order is no longer PENDING (e.g. it was paid in the meantime).
+     */
+    void expireOrder(String orderNumber);
 }

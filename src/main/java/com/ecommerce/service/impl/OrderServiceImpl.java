@@ -11,20 +11,27 @@ import com.ecommerce.entity.Order;
 import com.ecommerce.entity.OrderItem;
 import com.ecommerce.entity.Product;
 import com.ecommerce.entity.enums.OrderStatus;
+import com.ecommerce.entity.enums.PaymentStatus;
 import com.ecommerce.exception.BusinessException;
+import com.ecommerce.exception.PaymentProviderException;
 import com.ecommerce.exception.ResourceNotFoundException;
 import com.ecommerce.mapper.OrderMapper;
+import com.ecommerce.payment.PaymentGateway;
 import com.ecommerce.repository.CartRepository;
 import com.ecommerce.repository.OrderRepository;
+import com.ecommerce.repository.PaymentRepository;
 import com.ecommerce.repository.ProductRepository;
 import com.ecommerce.repository.UserRepository;
 import com.ecommerce.service.OrderNumberGenerator;
 import com.ecommerce.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -34,6 +41,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -45,6 +53,8 @@ public class OrderServiceImpl implements OrderService {
     private final UserRepository userRepository;
     private final OrderMapper orderMapper;
     private final OrderNumberGenerator orderNumberGenerator;
+    private final PaymentRepository paymentRepository;
+    private final PaymentGateway paymentGateway;
 
     /**
      * Converts the user's cart into an order in a single all-or-nothing transaction:
@@ -170,6 +180,16 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toResponse(order);
     }
 
+    @Override
+    @Transactional
+    public void expireOrder(String orderNumber) {
+        Order order = findOrderOrThrow(orderNumber);
+        if (order.getStatus() != OrderStatus.PENDING) {
+            return;
+        }
+        cancelAndRestoreStock(order);
+    }
+
     private void cancelAndRestoreStock(Order order) {
         if (!order.getStatus().canTransitionTo(OrderStatus.CANCELLED)) {
             throw new BusinessException("Order '" + order.getOrderNumber()
@@ -187,6 +207,37 @@ public class OrderServiceImpl implements OrderService {
         }
 
         order.setStatus(OrderStatus.CANCELLED);
+        cancelPendingPayment(order);
+    }
+
+    /**
+     * Cancels the open Stripe payment intent so the customer can no longer pay for a cancelled order.
+     * <p>
+     * The Stripe call is deliberately made AFTER the database transaction commits: an external call
+     * cannot be rolled back, so if our commit failed we must not have touched Stripe.
+     * If the Stripe call fails (or the payment has just succeeded), the success webhook refunds it automatically.
+     */
+    private void cancelPendingPayment(Order order) {
+        paymentRepository.findByOrderId(order.getId()).ifPresent(payment -> {
+            if (payment.getStatus() != PaymentStatus.PENDING && payment.getStatus() != PaymentStatus.FAILED) {
+                return;
+            }
+            payment.setStatus(PaymentStatus.CANCELLED);
+
+            String paymentIntentId = payment.getStripePaymentIntentId();
+            String orderNumber = order.getOrderNumber();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        paymentGateway.cancelPaymentIntent(paymentIntentId);
+                    } catch (PaymentProviderException ex) {
+                        log.warn("Could not cancel payment intent {} for order {}: {}",
+                                paymentIntentId, orderNumber, ex.getMessage());
+                    }
+                }
+            });
+        });
     }
 
     private void validateProductForOrder(Product product, int quantity) {

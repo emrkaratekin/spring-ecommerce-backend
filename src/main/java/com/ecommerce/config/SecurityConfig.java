@@ -30,9 +30,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private static final String[] PUBLIC_AUTH_ENDPOINTS = {
+    private static final String[] PUBLIC_POST_ENDPOINTS = {
             "/api/v1/auth/register",
-            "/api/v1/auth/login"
+            "/api/v1/auth/login",
+            // Called by Stripe, authenticated by verifying the Stripe-Signature header instead of a JWT
+            "/api/v1/payments/webhook"
     };
 
     private static final String[] CATALOG_ENDPOINTS = {
@@ -58,7 +60,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers(HttpMethod.POST, PUBLIC_AUTH_ENDPOINTS).permitAll()
+                        .requestMatchers(HttpMethod.POST, PUBLIC_POST_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.GET, CATALOG_ENDPOINTS).permitAll()
                         .requestMatchers(CATALOG_ENDPOINTS).hasRole("ADMIN")
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
