@@ -2,14 +2,19 @@ package com.ecommerce.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -59,6 +64,42 @@ public class GlobalExceptionHandler {
         String message = String.format("Invalid value '%s' for parameter '%s'",
                 ex.getValue(), ex.getName());
         return buildResponse(HttpStatus.BAD_REQUEST, message, request, null);
+    }
+
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidSortProperty(PropertyReferenceException ex,
+                                                                   HttpServletRequest request) {
+        String message = String.format("Invalid sort property: '%s'", ex.getPropertyName());
+        return buildResponse(HttpStatus.BAD_REQUEST, message, request, null);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException ex,
+                                                               HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "Endpoint not found", request, null);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
+                                                                  HttpServletRequest request) {
+        String message = String.format("HTTP method '%s' is not supported for this endpoint", ex.getMethod());
+        return buildResponse(HttpStatus.METHOD_NOT_ALLOWED, message, request, null);
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(ObjectOptimisticLockingFailureException ex,
+                                                              HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT,
+                "The resource was modified by another request. Please retry.", request, null);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex,
+                                                             HttpServletRequest request) {
+        log.warn("Data integrity violation on {} {}: {}",
+                request.getMethod(), request.getRequestURI(), ex.getMostSpecificCause().getMessage());
+        return buildResponse(HttpStatus.CONFLICT,
+                "The request conflicts with existing data", request, null);
     }
 
     @ExceptionHandler(Exception.class)

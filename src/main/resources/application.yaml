@@ -16,6 +16,11 @@ spring:
       hibernate:
         format_sql: true
 
+  data:
+    web:
+      pageable:
+        max-page-size: 100
+
 server:
   port: 8080
   error:
