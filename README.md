@@ -3,6 +3,15 @@
 A production-style e-commerce REST API built with **Java 21**, **Spring Boot 4**, **PostgreSQL** and **Stripe**.
 It covers the full purchase flow: catalog, cart, orders with safe stock handling, JWT authentication and card payments confirmed by signed webhooks.
 
+![Swagger UI - endpoints](docs/swagger-1.png)
+
+<details>
+<summary>More endpoints</summary>
+
+![Swagger UI - more endpoints](docs/swagger-2.png)
+
+</details>
+
 ## Tech stack
 
 | Area | Technology |
