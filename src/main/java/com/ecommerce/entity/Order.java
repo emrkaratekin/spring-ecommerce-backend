@@ -14,7 +14,9 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -66,8 +68,12 @@ public class Order extends BaseEntity {
     private Address shippingAddress;
 
     @Builder.Default
+    @OrderBy("id ASC")
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
+
+    @Version
+    private Long version;
 
     public void addItem(OrderItem item) {
         items.add(item);

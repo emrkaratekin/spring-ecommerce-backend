@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface CartRepository extends JpaRepository<Cart, Long> {
@@ -20,4 +21,7 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
             where c.user.id = :userId
             """)
     Optional<Cart> findWithItemsByUserId(@Param("userId") Long userId);
+
+    @Query("select i.product.id from CartItem i where i.cart.user.id = :userId")
+    List<Long> findProductIdsByUserId(@Param("userId") Long userId);
 }

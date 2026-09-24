@@ -3,6 +3,7 @@ package com.ecommerce.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -114,6 +115,14 @@ public class GlobalExceptionHandler {
                                                               HttpServletRequest request) {
         return buildResponse(HttpStatus.CONFLICT,
                 "The resource was modified by another request. Please retry.", request, null);
+    }
+
+    @ExceptionHandler(PessimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handlePessimisticLock(PessimisticLockingFailureException ex,
+                                                               HttpServletRequest request) {
+        log.warn("Lock could not be acquired on {} {}", request.getMethod(), request.getRequestURI());
+        return buildResponse(HttpStatus.CONFLICT,
+                "The resource is currently being updated by another request. Please retry.", request, null);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
