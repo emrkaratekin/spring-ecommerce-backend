@@ -25,3 +25,16 @@ server:
   port: 8080
   error:
     include-stacktrace: never
+
+security:
+  jwt:
+    # Development-only default. In production ALWAYS provide JWT_SECRET as an environment variable.
+    secret: ${JWT_SECRET:rUbX/rZnExfbiQSCzPCn5MXmtJ2TE+GrCLmMUFdyqsBCzYsKRsPOajOUL3coeLF4guZ7cl8juJtWq/Vsyh+RmQ==}
+    expiration: ${JWT_EXPIRATION:1h}
+
+app:
+  admin:
+    email: ${ADMIN_EMAIL:admin@ecommerce.local}
+    password: ${ADMIN_PASSWORD:Admin12345}
+    first-name: System
+    last-name: Admin
